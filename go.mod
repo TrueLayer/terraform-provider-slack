@@ -7,7 +7,7 @@ toolchain go1.24.4
 require (
 	github.com/bflad/tfproviderdocs v0.12.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/terraform-plugin-log v0.8.0
+	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.26.1
 	github.com/katbyte/terrafmt v0.5.5
 	github.com/slack-go/slack v0.17.2
