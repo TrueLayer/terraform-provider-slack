@@ -1,6 +1,6 @@
 module github.com/TrueLayer/terraform-provider-slack
 
-go 1.23.0
+go 1.23
 
 toolchain go1.24.4
 
