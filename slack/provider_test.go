@@ -17,19 +17,19 @@ var (
 	testUserCreator = testUser{
 		id:    "U01D6L97N0M",
 		name:  "contact",
-		email: "contact@truelayer.com",
+		email: "contact@TrueLayer.com",
 	}
 
 	testUser00 = testUser{
 		id:    "U01D31S1GUE",
 		name:  "contact_test-user-ter",
-		email: "contact+test-user-terraform-provider-slack-00@truelayer.com",
+		email: "contact+test-user-terraform-provider-slack-00@TrueLayer.com",
 	}
 
 	testUser01 = testUser{
 		id:    "U01DZK10L1W",
 		name:  "contact_test-user-206",
-		email: "contact+test-user-terraform-provider-slack-01@truelayer.com",
+		email: "contact+test-user-terraform-provider-slack-01@TrueLayer.com",
 	}
 )
 
@@ -61,7 +61,7 @@ func TestProvider(t *testing.T) {
 }
 
 func TestProvider_impl(_ *testing.T) {
-	var _ *schema.Provider = Provider()
+	var _ = Provider()
 }
 
 func testAccPreCheck(t *testing.T) {
