@@ -81,7 +81,7 @@ require (
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/vmihailenco/msgpack/v4 v4.3.13 // indirect
 	github.com/vmihailenco/tagparser v0.1.1 // indirect
-	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
+	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/ysmood/fetchup v0.2.2 // indirect
 	github.com/yuin/goldmark v1.7.12 // indirect
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60 // indirect
