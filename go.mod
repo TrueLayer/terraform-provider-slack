@@ -85,7 +85,7 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/ysmood/fetchup v0.2.4 // indirect
 	github.com/yuin/goldmark v1.7.12 // indirect
-	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60 // indirect
+	github.com/yuin/goldmark-meta v1.1.0 // indirect
 	github.com/zclconf/go-cty v1.14.3 // indirect
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
