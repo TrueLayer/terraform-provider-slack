@@ -4,11 +4,10 @@ jobs:
   markIssuesForTriage:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Apply Issue Triage Label
-      uses: actions/github@v1.0.0
-      if: github.event.action == 'opened' && !contains(fromJSON('["pablovarela"]'), github.actor)
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        args: label needs-triage
+      - uses: actions/checkout@v4
+      - name: Apply Issue Triage Label
+        uses: actions-ecosystem/action-add-labels@v1
+        if: github.event.action == 'opened'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: needs-triage

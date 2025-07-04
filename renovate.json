@@ -1,0 +1,14 @@
+{
+  "labels": ["dependencies"],
+  "dependencyDashboard": true,
+  "packageRules": [
+    {
+      "matchManagers": ["gomod"],
+      "labels": ["dependencies"],
+      "reviewers": ["team:DevOps"],
+      "enabled": true
+    }
+  ],
+  "commitMessagePrefix": "[DEPENDENCIES]",
+  "enabledManagers": ["gomod"]
+}
