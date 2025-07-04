@@ -149,6 +149,8 @@ github.com/jhump/protoreflect v1.6.0 h1:h5jfMVslIg6l29nsMs0D8Wj17RDVdNYti0vDN/PZ
 github.com/jhump/protoreflect v1.6.0/go.mod h1:eaTn3RZAmMBcV0fifFvlm6VHNz3wSkYyXYWUh7ymB74=
 github.com/katbyte/andreyvit-diff v0.0.2 h1:uQGxP2z57bTUGn3SCFzYKgtIKLeuYE+k9dxq1u9Js7U=
 github.com/katbyte/andreyvit-diff v0.0.2/go.mod h1:TdKKfasbASLXZHMVyCoXJw999kjRmOIeHSdG1Pm/x1Y=
+github.com/katbyte/andreyvit-diff v0.0.3 h1:gMfE0xQUKAZb3B2cnnrkLYCCZxnuGCxG4nVczq/dWfE=
+github.com/katbyte/andreyvit-diff v0.0.3/go.mod h1:S//wdxNytA9hp598USfO3jHUDuLJug2TqUyvEErbowM=
 github.com/katbyte/sergi-go-diff v1.2.3 h1:z08AHpmtBTYIOCQBInFTHu9KULlvaWP1Iz2RZ9po3pQ=
 github.com/katbyte/sergi-go-diff v1.2.3/go.mod h1:BxkLLDDB1iVQsnURErqoQMjkyXIlR0DefDKzZCUHNEw=
 github.com/katbyte/terrafmt v0.5.5 h1:rd0aJYfGj9euWxRAbD5Km+cH+Fh68Tv2sUrerZI5fU0=

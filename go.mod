@@ -56,7 +56,7 @@ require (
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/katbyte/andreyvit-diff v0.0.2 // indirect
+	github.com/katbyte/andreyvit-diff v0.0.3 // indirect
 	github.com/katbyte/sergi-go-diff v1.2.3 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
