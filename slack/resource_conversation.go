@@ -2,11 +2,13 @@ package slack
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/slack-go/slack"
@@ -238,7 +240,7 @@ func findExistingChannel(ctx context.Context, client *slack.Client, name string,
 func updateChannelMembers(ctx context.Context, d *schema.ResourceData, client *slack.Client, channelID string) error {
 	members := d.Get("permanent_members").(*schema.Set)
 
-	userIds := schemaSetToSlice(members)
+	userIDs := schemaSetToSlice(members)
 	channel, err := client.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
 		ChannelID: channelID,
 	})
@@ -251,8 +253,8 @@ func updateChannelMembers(ctx context.Context, d *schema.ResourceData, client *s
 	if err != nil {
 		return fmt.Errorf("error authenticating with slack %w", err)
 	}
-	userIds = remove(userIds, apiUserInfo.UserID)
-	userIds = remove(userIds, channel.Creator)
+	userIDs = remove(userIDs, apiUserInfo.UserID)
+	userIDs = remove(userIDs, channel.Creator)
 
 	channelUsers, _, err := client.GetUsersInConversationContext(ctx, &slack.GetUsersInConversationParameters{
 		ChannelID: channel.ID,
@@ -272,7 +274,7 @@ func updateChannelMembers(ctx context.Context, d *schema.ResourceData, client *s
 	action := d.Get("action_on_update_permanent_members").(string)
 	if action == conversationActionOnUpdatePermanentMembersKick {
 		for _, currentMember := range channelUsers {
-			if currentMember != channel.Creator && currentMember != apiUserInfo.UserID && !contains(userIds, currentMember) {
+			if currentMember != channel.Creator && currentMember != apiUserInfo.UserID && !contains(userIDs, currentMember) {
 				if err := client.KickUserFromConversationContext(ctx, channelID, currentMember); err != nil {
 					return fmt.Errorf("couldn't kick user from conversation: %w", err)
 				}
@@ -280,8 +282,8 @@ func updateChannelMembers(ctx context.Context, d *schema.ResourceData, client *s
 		}
 	}
 
-	if len(userIds) > 0 {
-		if _, err := client.InviteUsersToConversationContext(ctx, channelID, userIds...); err != nil {
+	if len(userIDs) > 0 {
+		if _, err := client.InviteUsersToConversationContext(ctx, channelID, userIDs...); err != nil {
 			if err.Error() != "already_in_channel" {
 				return fmt.Errorf("couldn't invite users to conversation: %w", err)
 			}
@@ -294,27 +296,58 @@ func updateChannelMembers(ctx context.Context, d *schema.ResourceData, client *s
 func resourceSlackConversationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*slack.Client)
 	id := d.Id()
-	var diags diag.Diagnostics
-	channel, err := client.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
-		ChannelID: id,
+	var (
+		diags   diag.Diagnostics
+		channel *slack.Channel
+		users   []string
+		err     error
+	)
+
+	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
+		var rlerr *slack.RateLimitedError
+		channel, err = client.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
+			ChannelID: id,
+		})
+		if errors.As(err, &rlerr) {
+			time.Sleep(rlerr.RetryAfter)
+			return retry.RetryableError(err)
+		}
+		if err != nil {
+			if err.Error() == "channel_not_found" {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  fmt.Sprintf("channel with ID %s not found, removing from state", id),
+				})
+				d.SetId("")
+				return nil
+			}
+			return retry.NonRetryableError(fmt.Errorf("couldn't get conversation info for %s: %w", id, err))
+		}
+		return nil
 	})
 	if err != nil {
-		if err.Error() == "channel_not_found" {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("channel with ID %s not found, removing from state", id),
-			})
-			d.SetId("")
-			return diags
-		}
-		return diag.FromErr(fmt.Errorf("couldn't get conversation info for %s: %w", id, err))
+		return diag.FromErr(err)
+	}
+	if d.Id() == "" {
+		return diags
 	}
 
-	users, _, err := client.GetUsersInConversationContext(ctx, &slack.GetUsersInConversationParameters{
-		ChannelID: channel.ID,
+	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
+		var rlerr *slack.RateLimitedError
+		users, _, err = client.GetUsersInConversationContext(ctx, &slack.GetUsersInConversationParameters{
+			ChannelID: channel.ID,
+		})
+		if errors.As(err, &rlerr) {
+			time.Sleep(rlerr.RetryAfter)
+			return retry.RetryableError(err)
+		}
+		if err != nil {
+			return retry.NonRetryableError(fmt.Errorf("couldn't get users in conversation for %s: %w", channel.ID, err))
+		}
+		return nil
 	})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("couldn't get users in conversation for %s: %w", channel.ID, err))
+		return diag.FromErr(err)
 	}
 	return updateChannelData(d, channel, users)
 }
