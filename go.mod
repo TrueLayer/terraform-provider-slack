@@ -50,7 +50,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/katbyte/andreyvit-diff v0.0.1 // indirect
 	github.com/katbyte/sergi-go-diff v1.1.1 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
