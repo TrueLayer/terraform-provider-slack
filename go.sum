@@ -174,6 +174,8 @@ github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope
 github.com/mattn/go-colorable v0.1.12/go.mod h1:u5H1YNBxpqRaxsYJYSkiCWKzEfiAb1Gb520KVy5xxl4=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
+github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
+github.com/mattn/go-colorable v0.1.14/go.mod h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=
 github.com/mattn/go-isatty v0.0.3/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNxMWT7Zi4=
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=
 github.com/mattn/go-isatty v0.0.14/go.mod h1:7GGIvUiUoEMVVmxf/4nioHXj79iQHKdU27kJ6hsGG94=
@@ -260,6 +262,8 @@ github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavM
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=
 github.com/ysmood/fetchup v0.2.4 h1:2kfWr/UrdiHg4KYRrxL2Jcrqx4DZYD+OtWu7WPBZl5o=
 github.com/ysmood/fetchup v0.2.4/go.mod h1:hbysoq65PXL0NQeNzUczNYIKpwpkwFL4LXMDEvIQq9A=
+github.com/ysmood/fetchup v0.5.2 h1:P9w3OIA7RSNEEFvEmOiTq09IOu42C96PMyZ1MWd8TAs=
+github.com/ysmood/fetchup v0.5.2/go.mod h1:yCv8s8itjsCul1LGXJ1Q+8EQnZcVjfbZ4+l1zDm4StE=
 github.com/ysmood/golangci-lint v0.13.1 h1:MGjKsfdzUFpoD4KrH3SsJp+vZSVv8vG9fIaQ0E669U8=
 github.com/ysmood/golangci-lint v0.13.1/go.mod h1:CMTvuAnntJ4RbRTNSwWqzoG1wCsYuO3YVm5Hmjiy66Q=
 github.com/ysmood/gop v0.2.0 h1:+tFrG0TWPxT6p9ZaZs+VY+opCvHU8/3Fk6BaNv6kqKg=
