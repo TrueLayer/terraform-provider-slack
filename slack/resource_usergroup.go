@@ -2,10 +2,13 @@ package slack
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/slack-go/slack"
 )
@@ -108,10 +111,26 @@ func resourceSlackUserGroupCreate(ctx context.Context, d *schema.ResourceData, m
 func resourceSlackUserGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*slack.Client)
 	id := d.Id()
-	var diags diag.Diagnostics
-	userGroups, err := client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeUsers(true))
+	var (
+		diags      diag.Diagnostics
+		userGroups []slack.UserGroup
+		err        error
+	)
+
+	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
+		var rlerr *slack.RateLimitedError
+		userGroups, err = client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeUsers(true))
+		if errors.As(err, &rlerr) {
+			time.Sleep(rlerr.RetryAfter)
+			return retry.RetryableError(err)
+		}
+		if err != nil {
+			return retry.NonRetryableError(fmt.Errorf("couldn't get usergroups: %w", err))
+		}
+		return nil
+	})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("couldn't get usergroups: %w", err))
+		return diag.FromErr(err)
 	}
 
 	for _, userGroup := range userGroups {
@@ -127,36 +146,60 @@ func resourceSlackUserGroupRead(ctx context.Context, d *schema.ResourceData, m i
 	return diags
 }
 
-func findUserGroupByName(ctx context.Context, name string, includeDisabled bool, m interface{}) (slack.UserGroup, error) {
+func findUserGroup(
+	ctx context.Context,
+	includeDisabled bool,
+	m interface{},
+	match func(slack.UserGroup) bool,
+) (slack.UserGroup, error) {
 	client := m.(*slack.Client)
-	userGroups, err := client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeDisabled(includeDisabled), slack.GetUserGroupsOptionIncludeUsers(true))
+	var (
+		userGroups []slack.UserGroup
+		err        error
+	)
+	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
+		var rlerr *slack.RateLimitedError
+		userGroups, err = client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeDisabled(includeDisabled), slack.GetUserGroupsOptionIncludeUsers(true))
+		if errors.As(err, &rlerr) {
+			time.Sleep(rlerr.RetryAfter)
+			return retry.RetryableError(err)
+		}
+		if err != nil {
+			return retry.NonRetryableError(fmt.Errorf("couldn't get usergroups: %w", err))
+		}
+		return nil
+	})
 	if err != nil {
 		return slack.UserGroup{}, err
 	}
 
 	for _, userGroup := range userGroups {
-		if userGroup.Name == name {
+		if match(userGroup) {
 			return userGroup, nil
 		}
 	}
 
-	return slack.UserGroup{}, fmt.Errorf("could not find usergroup %s", name)
+	return slack.UserGroup{}, fmt.Errorf("could not find usergroup")
+}
+
+func findUserGroupByName(ctx context.Context, name string, includeDisabled bool, m interface{}) (slack.UserGroup, error) {
+	ug, err := findUserGroup(ctx, includeDisabled, m, func(ug slack.UserGroup) bool {
+		return ug.Name == name
+	})
+	if err != nil {
+		return slack.UserGroup{}, fmt.Errorf("could not find usergroup with name: %s", name)
+	}
+	return ug, nil
 }
 
 func findUserGroupByID(ctx context.Context, id string, includeDisabled bool, m interface{}) (slack.UserGroup, error) {
-	client := m.(*slack.Client)
-	userGroups, err := client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeDisabled(includeDisabled), slack.GetUserGroupsOptionIncludeUsers(true))
+	ug, err := findUserGroup(ctx, includeDisabled, m, func(ug slack.UserGroup) bool {
+		return ug.ID == id
+	})
 	if err != nil {
-		return slack.UserGroup{}, err
+		return slack.UserGroup{}, fmt.Errorf("could not find usergroup with id: %s", id)
 	}
-
-	for _, userGroup := range userGroups {
-		if userGroup.ID == id {
-			return userGroup, nil
-		}
-	}
-
-	return slack.UserGroup{}, fmt.Errorf("could not find usergroup %s", id)
+	return ug, nil
 }
 
 func resourceSlackUserGroupUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
