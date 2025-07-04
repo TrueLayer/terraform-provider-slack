@@ -1,6 +1,8 @@
 module github.com/TrueLayer/terraform-provider-slack
 
-go 1.20
+go 1.21.0
+
+toolchain go1.24.4
 
 require (
 	github.com/bflad/tfproviderdocs v0.9.1
@@ -70,7 +72,7 @@ require (
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
-	github.com/spf13/cast v1.5.0 // indirect
+	github.com/spf13/cast v1.9.2 // indirect
 	github.com/spf13/cobra v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
