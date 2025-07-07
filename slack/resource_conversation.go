@@ -306,7 +306,7 @@ func resourceSlackConversationRead(ctx context.Context, d *schema.ResourceData, 
 			d.SetId("")
 			return diags
 		}
-		return diag.Errorf("couldn't get conversation info for %s: %w", id, err)
+		return diag.Errorf("couldn't get conversation info for %s: %s", id, err)
 	}
 	if d.Id() == "" {
 		return diags
@@ -320,7 +320,7 @@ func resourceSlackConversationRead(ctx context.Context, d *schema.ResourceData, 
 		return retryErr
 	})
 	if err != nil {
-		return diag.Errorf("couldn't get users in conversation for %s: %w", channel.ID, err)
+		return diag.Errorf("couldn't get users in conversation for %s: %s", channel.ID, err)
 	}
 	return updateChannelData(d, channel, users)
 }

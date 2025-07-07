@@ -19,7 +19,7 @@ type RetryConfig struct {
 // DefaultRetryConfig returns the default retry configuration
 func DefaultRetryConfig() *RetryConfig {
 	return &RetryConfig{
-		Timeout: 60 * time.Second,
+		Timeout: DefaultRetryTimeout(),
 	}
 }
 

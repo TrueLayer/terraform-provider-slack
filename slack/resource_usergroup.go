@@ -120,7 +120,7 @@ func resourceSlackUserGroupRead(ctx context.Context, d *schema.ResourceData, m i
 		return client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeUsers(true))
 	})
 	if err != nil {
-		return diag.Errorf("couldn't get usergroups: %w", err)
+		return diag.Errorf("couldn't get usergroups: %s", err)
 	}
 
 	for _, userGroup := range userGroups {

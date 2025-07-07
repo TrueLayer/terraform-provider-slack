@@ -85,14 +85,14 @@ func dataSourceSlackConversationRead(ctx context.Context, d *schema.ResourceData
 			})
 		})
 		if err != nil {
-			return diag.Errorf("couldn't get conversation info for %s: %w", channelID, err)
+			return diag.Errorf("couldn't get conversation info for %s: %s", channelID, err)
 		}
 	} else if channelName != "" {
 		channel, err = WithRetryWithResult(ctx, config.RetryConfig, func() (*slack.Channel, error) {
 			return findExistingChannel(ctx, client, channelName, isPrivate)
 		})
 		if err != nil {
-			return diag.Errorf("couldn't get conversation info for %s: %w", channelName, err)
+			return diag.Errorf("couldn't get conversation info for %s: %s", channelName, err)
 		}
 	} else {
 		return diag.Errorf("channel_id or name must be set")
@@ -106,7 +106,7 @@ func dataSourceSlackConversationRead(ctx context.Context, d *schema.ResourceData
 		return retryErr
 	})
 	if err != nil {
-		return diag.Errorf("couldn't get users in conversation for %s: %w", channel.ID, err)
+		return diag.Errorf("couldn't get users in conversation for %s: %s", channel.ID, err)
 	}
 
 	return updateChannelData(d, channel, users)

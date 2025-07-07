@@ -22,7 +22,7 @@ func Provider() *schema.Provider {
 			"retry_timeout": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     60,
+				Default:     DefaultRetryTimeoutSeconds,
 				Description: "The timeout in seconds for retry operations when rate limited by Slack. Defaults to 60 seconds.",
 			},
 		},

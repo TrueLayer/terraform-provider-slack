@@ -44,7 +44,7 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 			return searchByName(ctx, name.(string), client)
 		})
 		if err != nil {
-			return diag.Errorf("not found %s: %w", name.(string), err)
+			return diag.Errorf("not found %s: %s", name.(string), err)
 		}
 	}
 
@@ -53,7 +53,7 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 			return client.GetUserByEmailContext(ctx, email.(string))
 		})
 		if err != nil {
-			return diag.Errorf("not found %s: %w", email.(string), err)
+			return diag.Errorf("not found %s: %s", email.(string), err)
 		}
 	}
 
