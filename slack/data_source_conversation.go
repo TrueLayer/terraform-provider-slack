@@ -2,13 +2,8 @@ package slack
 
 import (
 	"context"
-	"fmt"
-
-	"errors"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/slack-go/slack"
 )
@@ -71,7 +66,8 @@ func dataSourceConversation() *schema.Resource {
 }
 
 func dataSourceSlackConversationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 	channelID := d.Get("channel_id").(string)
 	channelName := d.Get("name").(string)
 	isPrivate := d.Get("is_private").(bool)
@@ -82,53 +78,35 @@ func dataSourceSlackConversationRead(ctx context.Context, d *schema.ResourceData
 		err     error
 	)
 
-	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
-		var rlerr *slack.RateLimitedError
-		if channelID != "" {
-			channel, err = client.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
+	if channelID != "" {
+		channel, err = WithRetryWithResult(ctx, config.RetryConfig, func() (*slack.Channel, error) {
+			return client.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
 				ChannelID: channelID,
 			})
-			if errors.As(err, &rlerr) {
-				time.Sleep(rlerr.RetryAfter)
-				return retry.RetryableError(err)
-			}
-			if err != nil {
-				return retry.NonRetryableError(fmt.Errorf("couldn't get conversation info for %s: %w", channelID, err))
-			}
-		} else if channelName != "" {
-			channel, err = findExistingChannel(ctx, client, channelName, isPrivate)
-			if errors.As(err, &rlerr) {
-				time.Sleep(rlerr.RetryAfter)
-				return retry.RetryableError(err)
-			}
-			if err != nil {
-				return retry.NonRetryableError(fmt.Errorf("couldn't get conversation info for %s: %w", channelName, err))
-			}
-		} else {
-			return retry.NonRetryableError(fmt.Errorf("channel_id or name must be set"))
+		})
+		if err != nil {
+			return diag.Errorf("couldn't get conversation info for %s: %w", channelID, err)
 		}
-		return nil
-	})
-	if err != nil {
-		return diag.FromErr(err)
+	} else if channelName != "" {
+		channel, err = WithRetryWithResult(ctx, config.RetryConfig, func() (*slack.Channel, error) {
+			return findExistingChannel(ctx, client, channelName, isPrivate)
+		})
+		if err != nil {
+			return diag.Errorf("couldn't get conversation info for %s: %w", channelName, err)
+		}
+	} else {
+		return diag.Errorf("channel_id or name must be set")
 	}
 
-	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
-		var rlerr *slack.RateLimitedError
-		users, _, err = client.GetUsersInConversationContext(ctx, &slack.GetUsersInConversationParameters{
+	err = WithRetry(ctx, config.RetryConfig, func() error {
+		var retryErr error
+		users, _, retryErr = client.GetUsersInConversationContext(ctx, &slack.GetUsersInConversationParameters{
 			ChannelID: channel.ID,
 		})
-		if errors.As(err, &rlerr) {
-			time.Sleep(rlerr.RetryAfter)
-			return retry.RetryableError(err)
-		}
-		if err != nil {
-			return retry.NonRetryableError(fmt.Errorf("couldn't get users in conversation for %s: %w", channel.ID, err))
-		}
-		return nil
+		return retryErr
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.Errorf("couldn't get users in conversation for %s: %w", channel.ID, err)
 	}
 
 	return updateChannelData(d, channel, users)

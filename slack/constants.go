@@ -1,5 +1,4 @@
 package slack
 
-import "time"
+// This file is kept for potential future constants
 
-const slackRetryTimeout = 60 * time.Second

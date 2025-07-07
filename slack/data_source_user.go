@@ -2,12 +2,9 @@ package slack
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/slack-go/slack"
 )
@@ -34,7 +31,8 @@ func dataSourceUser() *schema.Resource {
 func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 
 	var (
 		user *slack.User
@@ -42,38 +40,20 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 	)
 
 	if name, ok := d.GetOk("name"); ok {
-		err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
-			var rlerr *slack.RateLimitedError
-			user, err = searchByName(ctx, name.(string), client)
-			if errors.As(err, &rlerr) {
-				time.Sleep(rlerr.RetryAfter)
-				return retry.RetryableError(err)
-			}
-			if err != nil {
-				return retry.NonRetryableError(fmt.Errorf("not found %s: %w", name.(string), err))
-			}
-			return nil
+		user, err = WithRetryWithResult(ctx, config.RetryConfig, func() (*slack.User, error) {
+			return searchByName(ctx, name.(string), client)
 		})
 		if err != nil {
-			return diag.FromErr(err)
+			return diag.Errorf("not found %s: %w", name.(string), err)
 		}
 	}
 
 	if email, ok := d.GetOk("email"); ok {
-		err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
-			var rlerr *slack.RateLimitedError
-			user, err = client.GetUserByEmailContext(ctx, email.(string))
-			if errors.As(err, &rlerr) {
-				time.Sleep(rlerr.RetryAfter)
-				return retry.RetryableError(err)
-			}
-			if err != nil {
-				return retry.NonRetryableError(fmt.Errorf("not found %s: %w", email.(string), err))
-			}
-			return nil
+		user, err = WithRetryWithResult(ctx, config.RetryConfig, func() (*slack.User, error) {
+			return client.GetUserByEmailContext(ctx, email.(string))
 		})
 		if err != nil {
-			return diag.FromErr(err)
+			return diag.Errorf("not found %s: %w", email.(string), err)
 		}
 	}
 
@@ -94,6 +74,7 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func searchByName(ctx context.Context, name string, client *slack.Client) (*slack.User, error) {
+	// Note: This function is called from within WithRetryWithResult, so we don't need additional retry logic here
 	users, err := client.GetUsersContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get workspace users: %s", err)

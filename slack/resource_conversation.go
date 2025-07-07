@@ -2,13 +2,10 @@ package slack
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/slack-go/slack"
@@ -130,7 +127,8 @@ func resourceSlackConversation() *schema.Resource {
 }
 
 func resourceSlackConversationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 
 	name := d.Get("name").(string)
 	isPrivate := d.Get("is_private").(bool)
@@ -187,6 +185,7 @@ func resourceSlackConversationCreate(ctx context.Context, d *schema.ResourceData
 func findExistingChannel(ctx context.Context, client *slack.Client, name string, isPrivate bool) (*slack.Channel, error) {
 	// find the existing channel. Sadly, there is no non-admin API to search by name,
 	// so we must search through ALL the channels
+	// Note: This function is called from within WithRetryWithResult, so rate limiting is handled by the wrapper
 	tflog.Info(ctx, "Looking for channel %s", map[string]interface{}{"channel": name})
 	paginationComplete := false
 	cursor := ""       // initial empty cursor to begin at start of list
@@ -207,31 +206,20 @@ func findExistingChannel(ctx context.Context, client *slack.Client, name string,
 				"nextCursor":  nextCursor,
 				"err":         err})
 		if err != nil {
-			if rateLimitedError, ok := err.(*slack.RateLimitedError); ok {
-				tflog.Warn(ctx, "rate limited", map[string]interface{}{"seconds": rateLimitedError.RetryAfter.Seconds()})
-				select {
-				case <-ctx.Done():
-					return nil, fmt.Errorf("canceled during pagination: %s", ctx.Err())
-				case <-time.After(rateLimitedError.RetryAfter):
-					tflog.Debug(ctx, "done sleeping after rate limited")
-				}
-				// retry current cursor
-			} else {
-				return nil, fmt.Errorf("couldn't get conversation context: %s", err.Error())
-			}
-		} else {
-			// see if channel in current batch
-			for _, c := range channels {
-				tflog.Trace(ctx, "checking channel", map[string]interface{}{"channel": c.Name})
-				if c.Name == name {
-					tflog.Info(ctx, "found channel")
-					return &c, nil
-				}
-			}
-			// not found so far, move on to next cursor, if pagination incomplete
-			paginationComplete = nextCursor == ""
-			cursor = nextCursor
+			return nil, fmt.Errorf("couldn't get conversation context: %s", err.Error())
 		}
+
+		// see if channel in current batch
+		for _, c := range channels {
+			tflog.Trace(ctx, "checking channel", map[string]interface{}{"channel": c.Name})
+			if c.Name == name {
+				tflog.Info(ctx, "found channel")
+				return &c, nil
+			}
+		}
+		// not found so far, move on to next cursor, if pagination incomplete
+		paginationComplete = nextCursor == ""
+		cursor = nextCursor
 	}
 	// looked through entire list, but didn't find matching name
 	return nil, fmt.Errorf("could not find channel with name %s", name)
@@ -294,7 +282,8 @@ func updateChannelMembers(ctx context.Context, d *schema.ResourceData, client *s
 }
 
 func resourceSlackConversationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 	id := d.Id()
 	var (
 		diags   diag.Diagnostics
@@ -303,57 +292,42 @@ func resourceSlackConversationRead(ctx context.Context, d *schema.ResourceData, 
 		err     error
 	)
 
-	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
-		var rlerr *slack.RateLimitedError
-		channel, err = client.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
+	channel, err = WithRetryWithResult(ctx, config.RetryConfig, func() (*slack.Channel, error) {
+		return client.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
 			ChannelID: id,
 		})
-		if errors.As(err, &rlerr) {
-			time.Sleep(rlerr.RetryAfter)
-			return retry.RetryableError(err)
-		}
-		if err != nil {
-			if err.Error() == "channel_not_found" {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  fmt.Sprintf("channel with ID %s not found, removing from state", id),
-				})
-				d.SetId("")
-				return nil
-			}
-			return retry.NonRetryableError(fmt.Errorf("couldn't get conversation info for %s: %w", id, err))
-		}
-		return nil
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		if err.Error() == "channel_not_found" {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("channel with ID %s not found, removing from state", id),
+			})
+			d.SetId("")
+			return diags
+		}
+		return diag.Errorf("couldn't get conversation info for %s: %w", id, err)
 	}
 	if d.Id() == "" {
 		return diags
 	}
 
-	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
-		var rlerr *slack.RateLimitedError
-		users, _, err = client.GetUsersInConversationContext(ctx, &slack.GetUsersInConversationParameters{
+	err = WithRetry(ctx, config.RetryConfig, func() error {
+		var retryErr error
+		users, _, retryErr = client.GetUsersInConversationContext(ctx, &slack.GetUsersInConversationParameters{
 			ChannelID: channel.ID,
 		})
-		if errors.As(err, &rlerr) {
-			time.Sleep(rlerr.RetryAfter)
-			return retry.RetryableError(err)
-		}
-		if err != nil {
-			return retry.NonRetryableError(fmt.Errorf("couldn't get users in conversation for %s: %w", channel.ID, err))
-		}
-		return nil
+		return retryErr
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.Errorf("couldn't get users in conversation for %s: %w", channel.ID, err)
 	}
 	return updateChannelData(d, channel, users)
 }
 
 func resourceSlackConversationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 
 	id := d.Id()
 
@@ -405,7 +379,8 @@ func resourceSlackConversationUpdate(ctx context.Context, d *schema.ResourceData
 
 func resourceSlackConversationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 
 	id := d.Id()
 	action := d.Get("action_on_destroy").(string)
