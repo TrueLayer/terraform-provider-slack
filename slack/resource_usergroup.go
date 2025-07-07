@@ -2,13 +2,10 @@ package slack
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/slack-go/slack"
 )
@@ -58,7 +55,8 @@ func resourceSlackUserGroup() *schema.Resource {
 }
 
 func resourceSlackUserGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
@@ -109,7 +107,8 @@ func resourceSlackUserGroupCreate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceSlackUserGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 	id := d.Id()
 	var (
 		diags      diag.Diagnostics
@@ -117,20 +116,11 @@ func resourceSlackUserGroupRead(ctx context.Context, d *schema.ResourceData, m i
 		err        error
 	)
 
-	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
-		var rlerr *slack.RateLimitedError
-		userGroups, err = client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeUsers(true))
-		if errors.As(err, &rlerr) {
-			time.Sleep(rlerr.RetryAfter)
-			return retry.RetryableError(err)
-		}
-		if err != nil {
-			return retry.NonRetryableError(fmt.Errorf("couldn't get usergroups: %w", err))
-		}
-		return nil
+	userGroups, err = WithRetryWithResult(ctx, config.RetryConfig, func() ([]slack.UserGroup, error) {
+		return client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeUsers(true))
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.Errorf("couldn't get usergroups: %s", err)
 	}
 
 	for _, userGroup := range userGroups {
@@ -152,25 +142,17 @@ func findUserGroup(
 	m interface{},
 	match func(slack.UserGroup) bool,
 ) (slack.UserGroup, error) {
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 	var (
 		userGroups []slack.UserGroup
 		err        error
 	)
-	err = retry.RetryContext(ctx, slackRetryTimeout, func() *retry.RetryError {
-		var rlerr *slack.RateLimitedError
-		userGroups, err = client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeDisabled(includeDisabled), slack.GetUserGroupsOptionIncludeUsers(true))
-		if errors.As(err, &rlerr) {
-			time.Sleep(rlerr.RetryAfter)
-			return retry.RetryableError(err)
-		}
-		if err != nil {
-			return retry.NonRetryableError(fmt.Errorf("couldn't get usergroups: %w", err))
-		}
-		return nil
+	userGroups, err = WithRetryWithResult(ctx, config.RetryConfig, func() ([]slack.UserGroup, error) {
+		return client.GetUserGroupsContext(ctx, slack.GetUserGroupsOptionIncludeDisabled(includeDisabled), slack.GetUserGroupsOptionIncludeUsers(true))
 	})
 	if err != nil {
-		return slack.UserGroup{}, err
+		return slack.UserGroup{}, fmt.Errorf("couldn't get usergroups: %w", err)
 	}
 
 	for _, userGroup := range userGroups {
@@ -203,7 +185,8 @@ func findUserGroupByID(ctx context.Context, id string, includeDisabled bool, m i
 }
 
 func resourceSlackUserGroupUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 
 	id := d.Id()
 	name := d.Get("name").(string)
@@ -235,7 +218,8 @@ func resourceSlackUserGroupUpdate(ctx context.Context, d *schema.ResourceData, m
 
 func resourceSlackUserGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	client := m.(*slack.Client)
+	config := m.(*ProviderConfig)
+	client := config.Client
 
 	id := d.Id()
 	_, err := client.DisableUserGroupContext(ctx, id)
