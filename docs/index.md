@@ -27,6 +27,8 @@ terraform {
 # Configure Slack Provider
 provider "slack" {
   token = var.slack_token
+  # The timeout limits how long the provider will retry operations when rate limited by Slack. Defaults to 60 seconds.
+  retry_timeout = 300  # 5 minutes
 }
 
 data "slack_user" "test_user_00" {
@@ -97,3 +99,5 @@ In addition to [generic `provider` arguments](https://www.terraform.io/docs/conf
 
 - `token` - (Mandatory) The Slack token. It must be provided,
 but it can also be sourced from the `SLACK_TOKEN` environment variable.
+
+- `retry_timeout` - (Optional) The timeout in seconds for retry operations when rate limited by Slack. Defaults to 60 seconds.
