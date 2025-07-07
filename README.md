@@ -12,3 +12,6 @@ management of Slack resources.
 ### Documentation
 
 Full, comprehensive documentation is available on the Terraform Registry: https://registry.terraform.io/providers/TrueLayer/slack/latest/docs
+
+### Additional Documentation
+- [Retry Logic and Rate Limiting](docs/retry-logic.md) - Additional info about the provider's retry mechanism for handling Slack API rate limits.
