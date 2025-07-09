@@ -1,3 +1,4 @@
+---
 on: issues
 name: Issue triage
 jobs:
