@@ -73,7 +73,7 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 	return diags
 }
 
-func searchByName(ctx context.Context, name string, client *slack.Client) (*slack.User, error) {
+func searchByName(ctx context.Context, name string, client ClientInterface) (*slack.User, error) {
 	// Note: This function is called from within WithRetryWithResult, so we don't need additional retry logic here
 	users, err := client.GetUsersContext(ctx)
 	if err != nil {

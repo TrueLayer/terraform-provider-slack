@@ -44,7 +44,7 @@ func Provider() *schema.Provider {
 
 // ProviderConfig holds the provider configuration
 type ProviderConfig struct {
-	Client      *slack.Client
+	Client      ClientInterface
 	RetryConfig *RetryConfig
 }
 
@@ -62,9 +62,10 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	}
 
 	slackClient := slack.New(token.(string))
+	wrappedClient := NewClientWrapper(slackClient)
 
 	config := &ProviderConfig{
-		Client:      slackClient,
+		Client:      wrappedClient,
 		RetryConfig: retryConfig,
 	}
 
@@ -72,6 +73,9 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 }
 
 func schemaSetToSlice(set *schema.Set) []string {
+	if set == nil {
+		return []string{}
+	}
 	s := make([]string, len(set.List()))
 	for i, v := range set.List() {
 		s[i] = v.(string)
@@ -80,10 +84,11 @@ func schemaSetToSlice(set *schema.Set) []string {
 }
 
 func remove(s []string, r string) []string {
-	for i, v := range s {
-		if v == r {
-			return append(s[:i], s[i+1:]...)
+	result := make([]string, 0, len(s))
+	for _, v := range s {
+		if v != r {
+			result = append(result, v)
 		}
 	}
-	return s
+	return result
 }
