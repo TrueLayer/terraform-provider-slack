@@ -182,7 +182,7 @@ func resourceSlackConversationCreate(ctx context.Context, d *schema.ResourceData
 	return resourceSlackConversationRead(ctx, d, m)
 }
 
-func findExistingChannel(ctx context.Context, client *slack.Client, name string, isPrivate bool) (*slack.Channel, error) {
+func findExistingChannel(ctx context.Context, client ClientInterface, name string, isPrivate bool) (*slack.Channel, error) {
 	// find the existing channel. Sadly, there is no non-admin API to search by name,
 	// so we must search through ALL the channels
 	// Note: This function is called from within WithRetryWithResult, so rate limiting is handled by the wrapper
@@ -225,7 +225,7 @@ func findExistingChannel(ctx context.Context, client *slack.Client, name string,
 	return nil, fmt.Errorf("could not find channel with name %s", name)
 }
 
-func updateChannelMembers(ctx context.Context, d *schema.ResourceData, client *slack.Client, channelID string) error {
+func updateChannelMembers(ctx context.Context, d *schema.ResourceData, client ClientInterface, channelID string) error {
 	members := d.Get("permanent_members").(*schema.Set)
 
 	userIDs := schemaSetToSlice(members)
@@ -465,7 +465,7 @@ func updateChannelData(d *schema.ResourceData, channel *slack.Channel, _ []strin
 	return nil
 }
 
-func archiveConversationWithContext(ctx context.Context, client *slack.Client, id string) error {
+func archiveConversationWithContext(ctx context.Context, client ClientInterface, id string) error {
 	if err := client.ArchiveConversationContext(ctx, id); err != nil {
 		if err.Error() != "already_archived" {
 			return fmt.Errorf("couldn't archive conversation %s: %s", id, err)
