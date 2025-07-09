@@ -18,7 +18,7 @@ permissions:
   contents: write
 jobs:
   lint:
-    uses: ./.github/workflows/lint.yml
+    uses: ./.github/workflows/golangci-lint.yml
   unit-tests:
     uses: ./.github/workflows/unit-tests.yml
   goreleaser:
