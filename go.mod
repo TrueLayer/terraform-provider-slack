@@ -1,8 +1,6 @@
 module github.com/TrueLayer/terraform-provider-slack
 
-go 1.23.0
-
-toolchain go1.24.5
+go 1.25
 
 require (
 	github.com/bflad/tfproviderdocs v0.12.1
@@ -10,8 +8,8 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.37.0
 	github.com/katbyte/terrafmt v0.5.5
-	github.com/slack-go/slack v0.17.3
-	github.com/stretchr/testify v1.10.0
+	github.com/slack-go/slack v0.23.1
+	github.com/stretchr/testify v1.11.1
 	github.com/ysmood/golangci-lint v0.13.1
 )
 
@@ -70,7 +68,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/posener/complete v1.2.3 // indirect
-	github.com/posener/complete/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
