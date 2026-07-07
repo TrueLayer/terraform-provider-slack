@@ -1,8 +1,6 @@
 module github.com/TrueLayer/terraform-provider-slack
 
-go 1.23.0
-
-toolchain go1.24.5
+go 1.25
 
 require (
 	github.com/bflad/tfproviderdocs v0.12.1
@@ -23,6 +21,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
+	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/bgentry/speakeasy v0.2.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
@@ -88,7 +87,7 @@ require (
 	github.com/ysmood/fetchup v0.5.2 // indirect
 	github.com/yuin/goldmark v1.7.12 // indirect
 	github.com/yuin/goldmark-meta v1.1.0 // indirect
-	github.com/zclconf/go-cty v1.16.3 // indirect
+	github.com/zclconf/go-cty v1.19.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
